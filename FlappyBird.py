@@ -1,6 +1,7 @@
 import pygame
 import os
 import random
+import json
 
 # Definindo as dimensões da tela
 TELA_LARGURA = 500
@@ -19,8 +20,23 @@ IMAGENS_PASSARO = [
 # Inicializando o módulo de fontes do pygame
 pygame.font.init()
 FONTE_PONTOS = pygame.font.SysFont('arial', 50)
-FONTE_FINAL = pygame.font.SysFont('arial', 60)
+FONTE_FINAL = pygame.font.SysFont('arial', 40)
 FONTE_CONTAGEM = pygame.font.SysFont('arial', 100)
+FONTE_DIFICULDADE = pygame.font.SysFont('arial', 40)
+
+# Função para carregar as pontuações do arquivo
+def carregar_pontuacoes():
+    try:
+        with open('scores.json', 'r') as file:
+            scores = json.load(file)
+    except FileNotFoundError:
+        scores = {"Fácil": 0, "Normal": 0, "Difícil": 0}
+    return scores
+
+# Função para salvar as pontuações no arquivo
+def salvar_pontuacoes(scores):
+    with open('scores.json', 'w') as file:
+        json.dump(scores, file)
 
 # Classe do Pássaro
 class Passaro:
@@ -169,11 +185,32 @@ def desenhar_tela(tela, passaros, canos, chao, pontos):
     pygame.display.update()
 
 # Função para mostrar a tela final
-def mostrar_tela_final(tela, pontos):
-    texto = FONTE_FINAL.render(f"Pontuação Final: {pontos}", 1, (255, 0, 0))
+def mostrar_tela_final(tela, pontos, dificuldade, scores):
+    tela.blit(IMAGEM_BACKGROUND, (0, 0))
+    texto = FONTE_FINAL.render(f"Pontuação Final ({dificuldade}): {pontos}", 1, (255, 0, 0))
     tela.blit(texto, (TELA_LARGURA // 2 - texto.get_width() // 2, TELA_ALTURA // 2 - texto.get_height() // 2))
+
+    texto_facil = FONTE_FINAL.render(f"Fácil: {scores['Fácil']}", 1, (255, 255, 255))
+    tela.blit(texto_facil, (TELA_LARGURA // 2 - texto_facil.get_width() // 2, TELA_ALTURA // 2 + 40))
+    texto_normal = FONTE_FINAL.render(f"Normal: {scores['Normal']}", 1, (255, 255, 255))
+    tela.blit(texto_normal, (TELA_LARGURA // 2 - texto_normal.get_width() // 2, TELA_ALTURA // 2 + 80))
+    texto_dificil = FONTE_FINAL.render(f"Difícil: {scores['Difícil']}", 1, (255, 255, 255))
+    tela.blit(texto_dificil, (TELA_LARGURA // 2 - texto_dificil.get_width() // 2, TELA_ALTURA // 2 + 120))
+
+    texto_reiniciar = FONTE_FINAL.render("Pressione R para Reiniciar", 1, (255, 255, 255))
+    tela.blit(texto_reiniciar, (TELA_LARGURA // 2 - texto_reiniciar.get_width() // 2, TELA_ALTURA // 2 + 180))
     pygame.display.update()
-    pygame.time.wait(2000)
+
+    # Espera o jogador pressionar "R" para reiniciar
+    esperando_reinicio = True
+    while esperando_reinicio:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_r:
+                    esperando_reinicio = False
 
 # Função para mostrar a contagem regressiva
 def mostrar_contagem_regressiva(tela):
@@ -184,65 +221,126 @@ def mostrar_contagem_regressiva(tela):
         pygame.display.update()
         pygame.time.wait(1000)
 
-# Função principal do jogo
-def main():
-    passaros = [Passaro(230, 350)]
-    chao = Chao(730)
-    canos = [Cano(700)]
-    tela = pygame.display.set_mode((TELA_LARGURA, TELA_ALTURA))
-    pontos = 0
-    relogio = pygame.time.Clock()
+# Função para selecionar a dificuldade
+def selecionar_dificuldade(tela):
+    dificuldades = ["Fácil", "Normal", "Difícil"]
+    selecionada = 1
 
-    # Mostrar a contagem regressiva antes do jogo começar
-    mostrar_contagem_regressiva(tela)
-
-    rodando = True
-    while rodando:
-        relogio.tick(30)
+    while True:
+        tela.blit(IMAGEM_BACKGROUND, (0, 0))
+        for i, dificuldade in enumerate(dificuldades):
+            cor = (255, 0, 0) if i == selecionada else (255, 255, 255)
+            texto = FONTE_DIFICULDADE.render(dificuldade, 1, cor)
+            tela.blit(texto, (TELA_LARGURA // 2 - texto.get_width() // 2, TELA_ALTURA // 2 - texto.get_height() // 2 + i * 50))
+        pygame.display.update()
 
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
-                rodando = False
                 pygame.quit()
                 quit()
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_SPACE:
-                    for passaro in passaros:
-                        passaro.pular()
+                if evento.key == pygame.K_UP and selecionada > 0:
+                    selecionada -= 1
+                if evento.key == pygame.K_DOWN and selecionada < len(dificuldades) - 1:
+                    selecionada += 1
+                if evento.key == pygame.K_RETURN:
+                    return dificuldades[selecionada]
 
-        for passaro in passaros:
-            passaro.mover()
-        chao.mover()
+# Função principal do jogo
+def main():
+    while True:
+        passaros = [Passaro(230, 350)]
+        chao = Chao(730)
+        canos = [Cano(700)]
+        tela = pygame.display.set_mode((TELA_LARGURA, TELA_ALTURA))
+        pontos = 0
+        relogio = pygame.time.Clock()
 
-        adicionar_cano = False
-        remover_canos = []
-        for cano in canos:
-            for i, passaro in enumerate(passaros):
-                if cano.colidir(passaro):
-                    passaros.pop(i)
-                if not cano.passou and passaro.x > cano.x:
-                    cano.passou = True
-                    adicionar_cano = True
-            cano.mover()
-            if cano.x + cano.CANO_TOPO.get_width() < 0:
-                remover_canos.append(cano)
+        # Carregar os scores do arquivo
+        scores = carregar_pontuacoes()
 
-        if adicionar_cano:
-            pontos += 1
-            canos.append(Cano(600))
-        for cano in remover_canos:
-            canos.remove(cano)
+        # Selecionar a dificuldade
+        dificuldade = selecionar_dificuldade(tela)
 
-        for i, passaro in enumerate(passaros):
-            if (passaro.y + passaro.imagem.get_height()) > chao.y or passaro.y < 0:
-                passaros.pop(i)
+        # Ajustar os parâmetros do jogo com base na dificuldade
+        if dificuldade == "Fácil":
+            Cano.DISTANCIA = 250
+            Cano.VELOCIDADE = 3
+        elif dificuldade == "Normal":
+            Cano.DISTANCIA = 200
+            Cano.VELOCIDADE = 5
+        elif dificuldade == "Difícil":
+            Cano.DISTANCIA = 150
+            Cano.VELOCIDADE = 7
 
-        if len(passaros) == 0:
-            mostrar_tela_final(tela, pontos)
-            rodando = False
+        # Mostrar a contagem regressiva antes do jogo começar
+        mostrar_contagem_regressiva(tela)
 
-        desenhar_tela(tela, passaros, canos, chao, pontos)
+        rodando = True
+        perdeu = False
 
+        while rodando:
+            relogio.tick(30)
+
+            for evento in pygame.event.get():
+                if evento.type == pygame.QUIT:
+                    rodando = False
+                    pygame.quit()
+                    quit()
+                if evento.type == pygame.KEYDOWN:
+                    if evento.key == pygame.K_SPACE and not perdeu:
+                        for passaro in passaros:
+                            passaro.pular()
+
+            if not perdeu:
+                for passaro in passaros:
+                    passaro.mover()
+                chao.mover()
+
+                adicionar_cano = False
+                remover_canos = []
+                for cano in canos:
+                    for i, passaro in enumerate(passaros):
+                        if cano.colidir(passaro):
+                            perdeu = True
+                            if pontos > scores[dificuldade]:
+                                scores[dificuldade] = pontos
+                            mostrar_tela_final(tela, pontos, dificuldade, scores)
+                            salvar_pontuacoes(scores)
+                        if not cano.passou and passaro.x > cano.x:
+                            cano.passou = True
+                            adicionar_cano = True
+                    cano.mover()
+                    if cano.x + cano.CANO_TOPO.get_width() < 0:
+                        remover_canos.append(cano)
+
+                if adicionar_cano:
+                    pontos += 1
+                    canos.append(Cano(600))
+                for cano in remover_canos:
+                    canos.remove(cano)
+
+                for i, passaro in enumerate(passaros):
+                    if (passaro.y + passaro.imagem.get_height()) > chao.y or passaro.y < 0:
+                        perdeu = True
+                        if pontos > scores[dificuldade]:
+                            scores[dificuldade] = pontos
+                        mostrar_tela_final(tela, pontos, dificuldade, scores)
+                        salvar_pontuacoes(scores)
+
+            desenhar_tela(tela, passaros, canos, chao, pontos)
+
+            if perdeu:
+                mostrar_tela_final(tela, pontos, dificuldade, scores)
+                rodando = False
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_r:
+                    break  # Sai do loop while True para reiniciar o jogo
 
 if __name__ == '__main__':
     main()
