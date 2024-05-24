@@ -217,7 +217,11 @@ def mostrar_contagem_regressiva(tela):
     for contagem in range(3, 0, -1):
         tela.blit(IMAGEM_BACKGROUND, (0, 0))
         texto = FONTE_CONTAGEM.render(str(contagem), 1, (255, 255, 255))
-        tela.blit(texto, (TELA_LARGURA // 2 - texto.get_width() // 2, TELA_ALTURA // 2 - texto.get_height() // 2))
+
+        posicao_x = TELA_LARGURA // 2 - texto.get_width() // 2
+        posicao_y = TELA_ALTURA // 2 - texto.get_height() // 2
+
+        tela.blit(texto, (posicao_x, posicao_y))
         pygame.display.update()
         pygame.time.wait(1000)
 
