@@ -2,7 +2,8 @@
 
 # python-flappy
 
-Integrantes: Luana Oliveira Ramos e Daniel Neiva
+Integrantes: Daniel Neiva da Silva, Daniel Pires Quirino, Jorge Luiz de Lacerda Quertz, Luana Oliveira Ramos
+
 
 Sobre o sistema: O sistema trata-se de um jogo inspirado no famoso "Flappy Bird", onde o jogador controla um pássaro que precisa voar através de uma série de canos sem colidir com eles. O jogador controla o pássaro para fazê-lo pular, enquanto a gravidade faz com que ele desça. O objetivo é passar pelo maior número possível de canos sem colidir.
 
