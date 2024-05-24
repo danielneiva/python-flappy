@@ -215,16 +215,19 @@ def mostrar_tela_final(tela, pontos, dificuldade, scores):
     tela.blit(texto_reiniciar, (TELA_LARGURA // 2 - texto_reiniciar.get_width() // 2, TELA_ALTURA // 2 + 180))
     pygame.display.update()
 
+    esperar_reinicio()
+
     # Espera o jogador pressionar "R" para reiniciar
-    esperando_reinicio = True
-    while esperando_reinicio:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_r:
-                    esperando_reinicio = False
+    def esperar_reinicio():
+        esperando_reinicio = True
+        while esperando_reinicio:
+            for evento in pygame.event.get():
+                if evento.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+                if evento.type == pygame.KEYDOWN:
+                    if evento.key == pygame.K_r:
+                        esperando_reinicio = False
 
 # Função para mostrar a contagem regressiva
 def mostrar_contagem_regressiva(tela):
