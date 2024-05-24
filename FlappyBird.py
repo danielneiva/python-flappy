@@ -7,6 +7,10 @@ import json
 TELA_LARGURA = 500
 TELA_ALTURA = 800
 
+MAX_DESLOCAMENTO = 16
+MIN_Y_LIMIT = 50
+MAX_ANGULO = -90
+
 # Carregando e escalando as imagens
 IMAGEM_CANO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'pipe.png')))
 IMAGEM_CHAO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'base.png')))
@@ -62,19 +66,29 @@ class Passaro:
 
     def mover(self):
         self.tempo += 1
-        deslocamento = 1.5 * (self.tempo**2) + self.velocidade * self.tempo
-        if deslocamento > 16:
-            deslocamento = 16
-        elif deslocamento < 0:
-            deslocamento -= 2
-
+        deslocamento = self.calcular_deslocamento()
+        deslocamento = self.limitar_deslocamento(deslocamento)
         self.y += deslocamento
+        self.atualizar_angulo(deslocamento)
 
-        if deslocamento < 0 or self.y < (self.altura + 50):
+    def calcular_deslocamento(self):
+        deslocamento_temporal = 1.5 * (self.tempo**2)
+        deslocamento_inicial = self.velocidade * self.tempo
+        return deslocamento_temporal + deslocamento_inicial
+
+    def limitar_deslocamento(self, deslocamento):
+        if deslocamento > MAX_DESLOCAMENTO:
+            return MAX_DESLOCAMENTO
+        elif deslocamento < 0:
+            return deslocamento - 2
+        return deslocamento
+
+    def atualizar_angulo(self, deslocamento):
+        if deslocamento < 0 or self.y < (self.altura + MIN_Y_LIMIT):
             if self.angulo < self.ROTACAO_MAXIMA:
                 self.angulo = self.ROTACAO_MAXIMA
         else:
-            if self.angulo > -90:
+            if self.angulo > MAX_ANGULO:
                 self.angulo -= self.VELOCIDADE_ROTACAO
 
     def desenhar(self, tela):
