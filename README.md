@@ -24,3 +24,9 @@ Classes e Objetos: Utilizados para definir o comportamento do pássaro, dos cano
 Máscaras de Colisão: Detectam colisões entre o pássaro e os canos.
 Loop de Jogo: Mantém o jogo rodando, atualizando a tela e movendo os objetos até que o jogador perca ou feche a janela.
 Temporização: Utilizada para a contagem regressiva e a exibição da pontuação final.
+
+Para executar o programa:
+
+source venv/bin/activate
+pip install -r requirements.txt
+python FlappyBird.py
