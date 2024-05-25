@@ -11,11 +11,19 @@ TELA_ALTURA = 800
 IMAGEM_CANO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'pipe.png')))
 IMAGEM_CHAO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'base.png')))
 IMAGEM_BACKGROUND = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bg.png')))
+IMAGEM_TIRO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bullet.png')))
 IMAGENS_PASSARO = [
     pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird1.png'))),
     pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird2.png'))),
     pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird3.png'))),
 ]
+IMAGENS_PODER = [
+    pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird1.png'))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird2.png'))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird3.png'))),
+]
+
+GAME_PAUSED = False
 
 # Inicializando o módulo de fontes do pygame
 pygame.font.init()
@@ -38,6 +46,22 @@ def salvar_pontuacoes(scores):
     with open('scores.json', 'w') as file:
         json.dump(scores, file)
 
+class Tiro:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.velocidade = 10
+        self.IMAGEM = IMAGEM_TIRO
+
+    def desenhar(self, tela):
+        tela.blit(self.IMAGEM, (self.x, self.y))
+
+    def mover(self):
+        self.x += self.velocidade
+
+    def get_mask(self):
+        return pygame.mask.from_surface(self.IMAGEM)
+
 # Classe do Pássaro
 class Passaro:
     IMGS = IMAGENS_PASSARO
@@ -54,9 +78,14 @@ class Passaro:
         self.tempo = 0
         self.contagem_imagem = 0
         self.imagem = self.IMGS[0]
+        self.poderes = {
+            'imunidade': False,
+            'tiro': 1
+        }
+        self.tiros = []
 
     def pular(self):
-        self.velocidade = -10.5
+        self.velocidade = -8.5
         self.tempo = 0
         self.altura = self.y
 
@@ -76,6 +105,19 @@ class Passaro:
         else:
             if self.angulo > -90:
                 self.angulo -= self.VELOCIDADE_ROTACAO
+
+    def tem_imunidade(self):
+        return self.poderes['imunidade']
+    
+    def remover_imunidade(self):
+        self.poderes['imunidade'] = False
+
+    def atirar(self):
+        if self.poderes['tiro'] > 0:
+            self.poderes['tiro'] -= 1
+            self.tiros.append(Tiro(self.x, self.y))
+        else:
+            print('Sem tiros')
 
     def desenhar(self, tela):
         self.contagem_imagem += 1
@@ -100,6 +142,12 @@ class Passaro:
         pos_centro_imagem = self.imagem.get_rect(topleft=(self.x, self.y)).center
         retangulo = imagem_rotacionada.get_rect(center=pos_centro_imagem)
         tela.blit(imagem_rotacionada, retangulo.topleft)
+
+    def dar_poder(self, poder):
+        if poder.poder == 'imunidade':
+            self.poderes['imunidade'] = True
+        elif poder.poder == 'tiro':
+            self.poderes['tiro'] += 1
 
     def get_mask(self):
         return pygame.mask.from_surface(self.imagem)
@@ -132,20 +180,67 @@ class Cano:
         tela.blit(self.CANO_BASE, (self.x, self.pos_base))
 
     def colidir(self, passaro):
-        passaro_mask = passaro.get_mask()
+        if not (passaro.tem_imunidade()):
+            passaro_mask = passaro.get_mask()
+            topo_mask = pygame.mask.from_surface(self.CANO_TOPO)
+            base_mask = pygame.mask.from_surface(self.CANO_BASE)
+
+            distancia_topo = (self.x - passaro.x, self.pos_topo - round(passaro.y))
+            distancia_base = (self.x - passaro.x, self.pos_base - round(passaro.y))
+
+            topo_ponto = passaro_mask.overlap(topo_mask, distancia_topo)
+            base_ponto = passaro_mask.overlap(base_mask, distancia_base)
+
+            if base_ponto or topo_ponto:
+                return True
+            else:
+                return False
+        else:
+            passaro.remover_imunidade()
+            return False
+        
+    def foi_atingido(self, tiro):
+        tiro_mask = tiro.get_mask()
         topo_mask = pygame.mask.from_surface(self.CANO_TOPO)
         base_mask = pygame.mask.from_surface(self.CANO_BASE)
 
-        distancia_topo = (self.x - passaro.x, self.pos_topo - round(passaro.y))
-        distancia_base = (self.x - passaro.x, self.pos_base - round(passaro.y))
+        distancia_topo = (self.x - tiro.x, self.pos_topo - round(tiro.y))
+        distancia_base = (self.x - tiro.x, self.pos_base - round(tiro.y))
 
-        topo_ponto = passaro_mask.overlap(topo_mask, distancia_topo)
-        base_ponto = passaro_mask.overlap(base_mask, distancia_base)
+        topo_ponto = tiro_mask.overlap(topo_mask, distancia_topo)
+        base_ponto = tiro_mask.overlap(base_mask, distancia_base)
 
         if base_ponto or topo_ponto:
             return True
         else:
             return False
+
+class Poder:
+    IMAGEM = IMAGENS_PODER
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.poder = random.choice(['imunidade', 'tiro'])
+        if self.poder == 'imunidade':
+            self.IMAGEM = IMAGENS_PODER[0]
+        elif self.poder == 'tiro':
+            self.IMAGEM = IMAGENS_PODER[1]
+
+    def mover(self):
+        self.x -= 5
+
+    def desenhar(self, tela):
+        tela.blit(self.IMAGEM, (self.x, self.y))
+
+    def colidir(self, passaro):
+
+        if (self.x < passaro.x + passaro.imagem.get_width()) and (self.x + self.IMAGEM.get_width() > passaro.x):
+            if (self.y < passaro.y + passaro.imagem.get_height()) and (self.y + self.IMAGEM.get_height() > passaro.y):
+                print('colidiu')
+                return True
+
+    
+        return False
 
 # Classe do Chão
 class Chao:
@@ -172,16 +267,28 @@ class Chao:
         tela.blit(self.IMAGEM, (self.x2, self.y))
 
 # Função para desenhar a tela
-def desenhar_tela(tela, passaros, canos, chao, pontos):
+def desenhar_tela(tela, passaros, canos, chao, pontos, poder):
     tela.blit(IMAGEM_BACKGROUND, (0, 0))
     for passaro in passaros:
         passaro.desenhar(tela)
+        for tiro in passaro.tiros:
+            tiro.desenhar(tela)
     for cano in canos:
         cano.desenhar(tela)
 
     texto = FONTE_PONTOS.render(f"Pontuação: {pontos}", 1, (255, 255, 255))
     tela.blit(texto, (TELA_LARGURA - 10 - texto.get_width(), 10))
+
+    if (passaros[0].poderes['imunidade']):
+        textoPoderes = FONTE_PONTOS.render("I", 1, (255, 255, 255))
+        tela.blit(textoPoderes, (10, 10))
+
+    if (passaros[0].poderes['tiro'] > 0):
+        textoPoderes = FONTE_PONTOS.render(f"T: {passaros[0].poderes['tiro']}", 1, (255, 255, 255))
+        tela.blit(textoPoderes, (10, 50))
     chao.desenhar(tela)
+    if (poder):
+        poder.desenhar(tela)
     pygame.display.update()
 
 # Função para mostrar a tela final
@@ -248,6 +355,7 @@ def selecionar_dificuldade(tela):
 
 # Função principal do jogo
 def main():
+    GAME_PAUSED = False
     while True:
         passaros = [Passaro(230, 350)]
         chao = Chao(730)
@@ -255,6 +363,7 @@ def main():
         tela = pygame.display.set_mode((TELA_LARGURA, TELA_ALTURA))
         pontos = 0
         relogio = pygame.time.Clock()
+        poder = None
 
         # Carregar os scores do arquivo
         scores = carregar_pontuacoes()
@@ -280,59 +389,90 @@ def main():
         perdeu = False
 
         while rodando:
-            relogio.tick(30)
+            if GAME_PAUSED:
+                for evento in pygame.event.get():
+                    if evento.type == pygame.QUIT:
+                        pygame.quit()
+                        quit()
+                    if evento.type == pygame.KEYDOWN:
+                        if evento.key == pygame.K_p:
+                            GAME_PAUSED = not GAME_PAUSED
+            else:
+                relogio.tick(30)
+                rand = random.randint(1, 100)
+                if not poder and rand > 0:
+                    poder = Poder(random.randint(250,500), random.randint(0,700))
+                    
+                for evento in pygame.event.get():
+                    if evento.type == pygame.QUIT:
+                        rodando = False
+                        pygame.quit()
+                        quit()
+                    if evento.type == pygame.KEYDOWN:
+                        if evento.key == pygame.K_SPACE and not perdeu:
+                            for passaro in passaros:
+                                passaro.pular()
+                        if evento.key == pygame.K_v:
+                            passaros[0].atirar()
+                        if evento.key == pygame.K_p:
+                            GAME_PAUSED = not GAME_PAUSED
 
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    rodando = False
-                    pygame.quit()
-                    quit()
-                if evento.type == pygame.KEYDOWN:
-                    if evento.key == pygame.K_SPACE and not perdeu:
-                        for passaro in passaros:
-                            passaro.pular()
+                if not perdeu:
+                    for passaro in passaros:
+                        passaro.mover()
+                        for tiro in passaro.tiros:
+                            tiro.mover()
+                    chao.mover()
+                    if (poder):
+                        if (poder.x + poder.IMAGEM.get_width() < 0):
+                            poder = None
+                        else:
+                            poder.mover()
 
-            if not perdeu:
-                for passaro in passaros:
-                    passaro.mover()
-                chao.mover()
+                    adicionar_cano = False
+                    remover_canos = []
+                    for cano in canos:
+                        for i, passaro in enumerate(passaros):
+                            if cano.colidir(passaro):
+                                perdeu = True
+                                if pontos > scores[dificuldade]:
+                                    scores[dificuldade] = pontos
+                                mostrar_tela_final(tela, pontos, dificuldade, scores)
+                                salvar_pontuacoes(scores)
+                            for i, tiro in enumerate(passaro.tiros):
+                                if cano.foi_atingido(tiro):
+                                    del passaro.tiros[i]
+                                    remover_canos.append(cano)
+                            if not cano.passou and passaro.x > cano.x:
+                                cano.passou = True
+                                adicionar_cano = True
+                        cano.mover()
+                        if cano.x + cano.CANO_TOPO.get_width() < 0:
+                            remover_canos.append(cano)
 
-                adicionar_cano = False
-                remover_canos = []
-                for cano in canos:
+                    if adicionar_cano:
+                        pontos += 1
+                        canos.append(Cano(600))
+                    for cano in remover_canos:
+                        canos.remove(cano)
+
                     for i, passaro in enumerate(passaros):
-                        if cano.colidir(passaro):
+                        if (passaro.y + passaro.imagem.get_height()) > chao.y or passaro.y < 0:
                             perdeu = True
                             if pontos > scores[dificuldade]:
                                 scores[dificuldade] = pontos
                             mostrar_tela_final(tela, pontos, dificuldade, scores)
                             salvar_pontuacoes(scores)
-                        if not cano.passou and passaro.x > cano.x:
-                            cano.passou = True
-                            adicionar_cano = True
-                    cano.mover()
-                    if cano.x + cano.CANO_TOPO.get_width() < 0:
-                        remover_canos.append(cano)
+                        if (poder):
+                            if (poder.colidir(passaro)):
+                                passaro.dar_poder(poder)
+                                poder = None
 
-                if adicionar_cano:
-                    pontos += 1
-                    canos.append(Cano(600))
-                for cano in remover_canos:
-                    canos.remove(cano)
+                desenhar_tela(tela, passaros, canos, chao, pontos, poder or None)
 
-                for i, passaro in enumerate(passaros):
-                    if (passaro.y + passaro.imagem.get_height()) > chao.y or passaro.y < 0:
-                        perdeu = True
-                        if pontos > scores[dificuldade]:
-                            scores[dificuldade] = pontos
-                        mostrar_tela_final(tela, pontos, dificuldade, scores)
-                        salvar_pontuacoes(scores)
-
-            desenhar_tela(tela, passaros, canos, chao, pontos)
-
-            if perdeu:
-                mostrar_tela_final(tela, pontos, dificuldade, scores)
-                rodando = False
+                if perdeu:
+                    mostrar_tela_final(tela, pontos, dificuldade, scores)
+                    rodando = False
 
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
