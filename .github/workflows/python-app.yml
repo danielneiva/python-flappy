@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pygame
+        python -m pip install pygame coverage
 
     - name: Run tests with coverage
       run: |
