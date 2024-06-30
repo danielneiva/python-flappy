@@ -3,7 +3,9 @@ install:
 	pip install coverage
 
 test:
-	python -m unittest discover -s tests -p "*.py"
+	coverage run -m unittest discover -s tests -p "*.py"
+	coverage report
+	coverage html
 
 run:
 	python FlappyBird.py
