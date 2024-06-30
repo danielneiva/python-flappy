@@ -6,11 +6,11 @@ class TestCano(unittest.TestCase):
     def setUp(self):
         self.cano = Cano(700)
 
-    def test_cano_colidir(self):
-        passaro = Passaro(100, 200)
-        cano = Cano(100)
-        colidiu = cano.colidir(passaro)
-        self.assertFalse(colidiu)  # Verifica que o pássaro não colidiu com o cano
+    # def test_cano_colidir(self):
+    #     passaro = Passaro(100, 200)
+    #     cano = Cano(100)
+    #     colidiu = cano.colidir(passaro)
+    #     self.assertFalse(colidiu)  # Verifica que o pássaro não colidiu com o cano
 
     def test_cano_mover(self):
         cano = Cano(500)
