@@ -33,7 +33,8 @@ class TestFlappyBirdIntegration(unittest.TestCase):
         self.passaro.mover()
         colidiu = self.poder.colidir(self.passaro)
         
-        self.passaro.dar_poder(self.poder) if colidiu else None
+        if colidiu:
+            self.passaro.dar_poder(self.poder)
 
         self.assertTrue(colidiu, "O pássaro deveria coletar o poder.")
         self.assertTrue(self.passaro.poderes[self.poder.poder], "O poder deveria ser ativado no pássaro.")
@@ -64,7 +65,8 @@ class TestFlappyBirdIntegration(unittest.TestCase):
         tiro.mover()
         colidiu = self.cano.foi_atingido(tiro)
 
-        self.passaro.tiros.remove(tiro) if colidiu else None
+        if colidiu:
+            self.passaro.tiros.remove(tiro)
 
         self.assertTrue(colidiu, "O tiro deveria colidir com o cano.")
         self.assertEqual(len(self.passaro.tiros), 0, "O tiro deveria ser removido após colidir com o cano.")
