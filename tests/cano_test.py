@@ -6,7 +6,7 @@ class TestCano(unittest.TestCase):
     def setUp(self):
         self.cano = Cano(700)
 
-     def test_colidir(self):
+    def test_colidir(self):
         passaro = Passaro(230, 350)
         self.assertFalse(self.cano.colidir(passaro))
 
